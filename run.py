@@ -99,7 +99,7 @@ if __name__ == '__main__':
     args = argparse.Namespace(**args_dict)
 
     # Defining how to save model checkpoints during training. Details: https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.callbacks.model_checkpoint.html 
-    callbacks = [ModelCheckpoint(dirpath = args.output_dir, save_top_k=-1, period=1)]
+    callbacks = [ModelCheckpoint(dirpath = args.output_dir, save_top_k=-1, every_n_epochs=1)] # period --> every_n_epochs
     checkpoint_callback = True
 
     if args.output_dir=="":
@@ -116,23 +116,27 @@ if __name__ == '__main__':
     else:
         plugins = []
         use_fp_16 = False
+        
+    use_fp_16 = True
 
     # Setting Flags for pytorch lightning trainer. Details: https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html#trainer-flags
     train_params = dict(
         accumulate_grad_batches=args.gradient_accumulation_steps,
         plugins=plugins,
-        gpus=args.n_gpu,
+        # gpus=args.n_gpu, # fails
         max_epochs=args.num_train_epochs,
         precision= 16 if use_fp_16 else 32,
-        amp_level=args.opt_level,
-        resume_from_checkpoint=args.resume_from_checkpoint,
+        # amp_level=args.opt_level,
+        # ckpt_path=args.resume_from_checkpoint, # updated
         gradient_clip_val=args.max_grad_norm,
-        checkpoint_callback=checkpoint_callback,
+        # checkpoint_callback=checkpoint_callback,
         val_check_interval=args.val_check_interval,
         logger=wandb_logger,
         callbacks = callbacks,
-        accelerator=args.accelerator,
+        accelerator = "gpu",
+        strategy=args.accelerator
     )
+    
 
     #Getting the Model type & Method
     if 't5' in args.model_name_or_path:
@@ -151,5 +155,5 @@ if __name__ == '__main__':
             model = Model.load_from_checkpoint(checkpoint_path=args.checkpoint_path, hparams=args, strict=False) 
         else:
             model = Model(args)
-        trainer = pl.Trainer(**train_params)
-        trainer.fit(model)
+        trainer = pl.Trainer(**train_params, limit_val_batches=0, num_sanity_val_steps=0)
+        trainer.fit(model, ckpt_path=args.resume_from_checkpoint) # updated

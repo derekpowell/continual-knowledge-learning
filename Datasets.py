@@ -164,6 +164,11 @@ class Pretrain(Dataset):
                 self.dataset = kilt_wow[type_path]   
             else:
                 raise NameError('Select the correct Dataset!')
+        ##  ------ new print statements
+        print(f'version is ... {self.dataset_version}')
+        print(f'dataset is ... {self.args.dataset}')
+        print(f'Type Path is ... {type_path}')
+        ##
         print(f'Length of dataset retrieving is.. {len(self.dataset)}')
         self.input_length = input_length
         self.output_length = output_length
