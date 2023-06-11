@@ -99,7 +99,7 @@ if __name__ == '__main__':
     args = argparse.Namespace(**args_dict)
 
     # Defining how to save model checkpoints during training. Details: https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.callbacks.model_checkpoint.html 
-    callbacks = [ModelCheckpoint(dirpath = args.output_dir, save_top_k=-1, every_n_epochs=1)] # period --> every_n_epochs
+    callbacks = [ModelCheckpoint(dirpath = args.output_dir, save_top_k=-1, every_n_epochs=1, save_on_train_epoch_end=True, save_last=True)] # period --> every_n_epochs
     checkpoint_callback = True
 
     if args.output_dir=="":
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         plugins = []
         use_fp_16 = False
         
-    use_fp_16 = True
+    use_fp_16 = True ## <--- just always use 16bit I say
 
     # Setting Flags for pytorch lightning trainer. Details: https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html#trainer-flags
     train_params = dict(
@@ -125,9 +125,9 @@ if __name__ == '__main__':
         plugins=plugins,
         # gpus=args.n_gpu, # fails
         max_epochs=args.num_train_epochs,
-        precision= 16 if use_fp_16 else 32,
+        precision= "bf16-mixed" if use_fp_16 else 32,
         # amp_level=args.opt_level,
-        # ckpt_path=args.resume_from_checkpoint, # updated
+        default_root_dir=args.resume_from_checkpoint, # updated
         gradient_clip_val=args.max_grad_norm,
         # checkpoint_callback=checkpoint_callback,
         val_check_interval=args.val_check_interval,
@@ -137,6 +137,7 @@ if __name__ == '__main__':
         strategy=args.accelerator
     )
     
+    torch.set_float32_matmul_precision("medium") # stop it bothering me
 
     #Getting the Model type & Method
     if 't5' in args.model_name_or_path:

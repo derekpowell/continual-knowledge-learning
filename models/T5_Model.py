@@ -13,6 +13,9 @@ from transformers import (
     T5Tokenizer,
     T5ForConditionalGeneration,
 )
+from transformers.models.t5.modeling_t5 import T5LayerFF
+# import models
+
 import torch
 from Datasets import Pretrain
 from torch.utils.data import RandomSampler
@@ -98,7 +101,25 @@ class T5(pl.LightningModule):
             for name, param in self.model.named_parameters():
                 if 'lora2' in name:
                     param.requires_grad = True
- 
+                    
+        ## ------------------------------------------------------------------
+        ## my methods
+        ## ------------------------------------------------------------------
+        elif hparams.method=='custom':
+            # Unfreezing the parameters in FF layers
+            for param in self.get_FFparameters():
+                param.requires_grad = True
+        elif hparams.method=='custom-encoder':
+            # Unfreezing the parameters in FF layers
+            for param in self.get_FFparameters(submodel="encoder"):
+                param.requires_grad = True
+        elif hparams.method=='custom-decoder':
+            # Unfreezing the parameters in FF layers
+            for param in self.get_FFparameters(submodel="decoder"):
+                param.requires_grad = True
+        ## ------------------------------------------------------------------
+    
+
         self.output_dir = self.hparams.output_dir
             
         n_observations_per_split = {
@@ -107,6 +128,22 @@ class T5(pl.LightningModule):
             "test": self.hparams.n_test,
         }
         self.n_obs = {k: v if v >= 0 else None for k, v in n_observations_per_split.items()}
+        
+        
+    def get_FFparameters(self, submodel = None): ## new function
+        params = []
+        if submodel==None:
+            modules = self.model.named_modules()
+        elif submodel == "encoder":
+            modules = self.model.encoder.named_modules()
+        elif submodel == "decoder":
+            modules = self.model.decoder.named_modules()
+            
+        for name, module in modules:
+            if type(module) == T5LayerFF:
+                for par in module.parameters():
+                    params.append(par)
+        return(params)
 
     def normalize_answer(self, s):
         """Lower text and remove punctuation, articles and extra whitespace."""

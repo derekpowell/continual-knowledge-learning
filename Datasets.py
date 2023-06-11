@@ -31,7 +31,7 @@ class Pretrain(Dataset):
             elif type_path =='split':
                 if self.args.split==1:
                     if self.dataset_version=='small':
-                        self.dataset = pd.read_csv('data/split/recent_news_small1.csv')
+                        self.dataset = pd.read_csv('data/split/recent_news_debug1.csv') ## hacked to debug
                     else:
                         raise Exception('Not supporting split for full setting.')
                 elif self.args.split==2:
